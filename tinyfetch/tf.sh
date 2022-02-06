@@ -9,4 +9,5 @@ echo -e "\e[32mEditor\e[0m:    $EDITOR"
 echo -e "\e[31mSpace\e[0m:     $(df -l --total -h | awk -F' ' '/total/{print $3}')B / $(df -l --total -h | awk -F' ' '/total/{print $2}')B ($(df -l --total -h | awk -F' ' '/total/{print $5}'))"
 echo -e "\e[31mCPU\e[0m:       $(cat /proc/cpuinfo | grep 'core id' | wc -l) cores @ $(lscpu | awk -F':' '/CPU max/{print $2/1000}')GHz"
 echo -e "\e[31mRAM\e[0m:       $(free -g --si | grep -oP '\d+' | head -n 1)GB"
-echo -e "\e[31mScreen\e[0m:    $(xdpyinfo | awk -F' ' '/dimensions/{print $2}')"
+[ -f /bin/xdpyinfo ] && echo -e "\e[31mScreen\e[0m:    $(xdpyinfo | awk -F' ' '/dimensions/{print $2}')"
+echo
