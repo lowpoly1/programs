@@ -1,0 +1,16 @@
+import os
+
+os.system("tput civis")
+
+try:
+  while True:
+    title = os.popen("playerctl metadata title").read()
+    artist = os.popen("playerctl metadata artist").read()
+    album = os.popen("playerctl metadata album").read()
+
+    os.system("clear")
+    print("\033[34mSong\033[0m:   ", title.strip())
+    print("\033[32mArtist\033[0m: ", artist.strip())
+    print("\033[31mAlbum\033[0m:  ", album.strip())
+except KeyboardInterrupt:
+  os.system("tput cnorm")
