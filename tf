@@ -1,3 +1,4 @@
+#!/bin/bash
 clear
 echo -e "\e[1;34m$(whoami)\e[0;34m@$(hostname)\e[0m"
 echo
