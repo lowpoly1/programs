@@ -1,0 +1,179 @@
+#!/bin/env python
+
+import sys
+from optparse import OptionParser
+
+usage="%prog [options]\n\nART - ANSI Reference Tool"
+
+parser = OptionParser(usage)
+
+parser.add_option("-f", "--foreground",
+    type="int",
+    default=-1,
+    metavar="COLOR",
+    help="Print all background colors behind specified foreground color. If -b is also specified, print both color codes with foreground and background as specified")
+
+parser.add_option("-b", "--background",
+    type="int",
+    default=-1,
+    metavar="COLOR",
+    help="Print all foreground colors over specified background color. If -f is also specified, print both color codes with foreground and background as specified")
+
+parser.add_option("-c", "--cursor",
+    action="store_true",
+    help="Explains cursor controls and other related sequences.")
+
+(options, args) = parser.parse_args()
+
+if options.cursor:
+    if len(options) > 1:
+        parser.error("-c cannot be used with any other options")
+    else:
+        print("Code                                                         Action\n")
+        
+        print("\u001b[{N}A:                        Move the cursor N characters up")
+        print("\u001b[{N}B:                      Move the cursor N characters down")
+        print("\u001b[{N}C:                     Move the cursor N characters right")
+        print("\u001b[{N}D:                      Move the cursor N characters left\n")
+
+        print("\u001b[{N}E:      Move the cursor to beginning of line N lines down")
+        print("\u001b[{N}F:        Move the cursor to beginning of line N lines up\n")
+
+        print("\u001b[{N}G:                                Move cursor to column N")
+        print("\u001b[{M};{N}H:                  Move cursor to row M and column N\n")
+        
+        print("\u001b[0J:                       Clear from cursor to end of screen")
+        print("\u001b[1J:                 Clear from cursor to beginning of screen")
+        print("\u001b[2J:                                      Clear entire screen\n")
+        
+        print("\u001b[0K:                         Clear from cursor to end of line")
+        print("\u001b[1K:                   Clear from cursor to beginning of line")
+        print("\u001b[2K:                                        Clear entire line\n")
+
+        print("\u001b[s:                              Save current cursor position")
+        print("\u001b[u:                                   Restore cursor position")
+
+elif options.foreground >= 0 and options.background >= 0:
+
+    sys.stdout.write(u"\u001b[38;5;" + str(options.foreground) + ";48;5;" + str(options.background) + "mForeground: " + str(options.foreground).rjust(4) + "\nBackground: " + str(options.background).rjust(4) + "\u001b[0m\n")
+
+elif options.foreground >= 0:
+
+    #define foreground color
+    sys.stdout.write(u"\u001b[38;5;" + str(options.foreground) + "m")    
+
+    # main 16
+    for j in range(0, 16):
+        code = str(j)
+        sys.stdout.write(u"\u001b[48;5;" + code + "m " + code.ljust(4))
+    print("\n")
+    
+    state = 0
+
+    # rest of 256
+    for i in range(0, 12):
+        for j in range(0, 18):
+            code = str(int(code) + 1)
+            sys.stdout.write(u"\u001b[48;5;" + code + "m " + code.ljust(4))
+            
+            if (int(code) + 3) % 6 == 0:
+                if state == 0:
+                    state = 1
+                    code = str(int(code) + 66)
+                    sys.stdout.write(u"\u001b[0m   \u001b[38;5;" + str(options.foreground) + "m")
+                elif state == 1:
+                    state = 2
+                    code = str(int(code) + 66)
+                    sys.stdout.write(u"\u001b[0m    \u001b[38;5;" + str(options.foreground) + "m")
+                else:
+                    state = 0
+                    code = str(int(code) - 144)
+                    print()
+    
+    print()
+
+    #greyscale colors
+    for j in range(232, 256):
+        code = str(j)
+        sys.stdout.write(u"\u001b[48;5;" + code + "m " + code)
+    sys.stdout.write(" ")
+
+elif options.background >= 0:
+
+    # declare background color
+    sys.stdout.write(u"\u001b[48;5;" + str(options.background) + "m")
+
+    # main 16
+    for j in range(0, 16):
+        code = str(j)
+        sys.stdout.write(u"\u001b[38;5;" + code + "m " + code.ljust(4))
+    print("\n")
+    
+    state = 0
+
+    # rest of 256
+    for i in range(0, 12):
+        for j in range(0, 18):
+            code = str(int(code) + 1)
+            sys.stdout.write(u"\u001b[38;5;" + code + "m " + code.ljust(4))
+            
+            if (int(code) + 3) % 6 == 0:
+                if state == 0:
+                    state = 1
+                    code = str(int(code) + 66)
+                    sys.stdout.write(u"\u001b[0m   \u001b[48;5;" + str(options.background) + "m")
+                elif state == 1:
+                    state = 2
+                    code = str(int(code) + 66)
+                    sys.stdout.write(u"\u001b[0m    \u001b[48;5;" + str(options.background) + "m")
+                else:
+                    state = 0
+                    code = str(int(code) - 144)
+                    print()
+    
+    print()
+
+    #greyscale colors
+    for j in range(232, 256):
+        code = str(j)
+        sys.stdout.write(u"\u001b[38;5;" + code + "m " + code)
+    sys.stdout.write(" ")
+
+else:
+    # main 16
+    for j in range(0, 16):
+        code = str(j)
+        sys.stdout.write(u"\u001b[38;5;" + code + "m " + code.ljust(4))
+    print("\n")
+    
+    state = 0
+
+    # rest of 256
+    for i in range(0, 12):
+        for j in range(0, 18):
+            code = str(int(code) + 1)
+            sys.stdout.write(u"\u001b[38;5;" + code + "m " + code.ljust(4))
+            
+            if (int(code) + 3) % 6 == 0:
+                if state == 0:
+                    state = 1
+                    code = str(int(code) + 66)
+                    sys.stdout.write("   ")
+                elif state == 1:
+                    state = 2
+                    code = str(int(code) + 66)
+                    sys.stdout.write("    ")
+                else:
+                    state = 0
+                    code = str(int(code) - 144)
+                    print()
+    
+    print()
+
+    #greyscale colors
+    for j in range(232, 256):
+        code = str(j)
+        sys.stdout.write(u"\u001b[38;5;" + code + "m " + code)
+
+
+print(u"\u001b[0m")
