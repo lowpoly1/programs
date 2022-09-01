@@ -1,7 +1,12 @@
-chat-server: just something I wrote as an excersize in Python, very basic. Might continue development if I feel like it.
+chat-server: Very basic terminal chat application. Currently not very useful, just a proof of concept. Might continue development if I feel like it. Written in Python.
 
-art: ANSI Reference Tool. In development; program to assist with ANSI codes
+songinfo: Displays currently playing song info in terminal. Written in Python.
 
-songinfo: displays currently playing song info in terminal
+tf: tinyfetch. Very small system info tool. Written in Bash.
 
-tf: tinyfetch, very small system info tool
+
+##Currently in development:
+
+art: ANSI Reference Tool. Program to assist with ANSI codes. Written in Python.
+
+cmd: Basic command line/shell. Written in python.
