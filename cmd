@@ -1,8 +1,5 @@
 #!/bin/bash
 
-cmd_USERNAME="user"
-cmd_HOSTNAME="host"
-
 cmd_eval () {
 case $1 in
     add)
@@ -37,7 +34,7 @@ while true; do
 
 
 
-echo -n "${cmd_USERNAME}@${cmd_HOSTNAME} -- > "
+echo -n "${PWD##*/} > "
 read cmd_INPUTSTRING
 cmd_COMMAND=( $cmd_INPUTSTRING )
 cmd_eval ${cmd_COMMAND[@]} || break
