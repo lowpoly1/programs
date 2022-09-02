@@ -13,6 +13,13 @@ read cmd_INPUTSTRING
 cmd_COMMAND=( $cmd_INPUTSTRING )
 #echo "command: ${cmd_COMMAND[0]}"
 case ${cmd_COMMAND[0]} in
+    add)
+        sum=0
+        for i in ${cmd_COMMAND[@]:1}; do
+            let sum+=$i
+        done
+        echo $sum
+        ;;
     echo)
         echo ${cmd_COMMAND[@]:1}
         ;;
