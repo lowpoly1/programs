@@ -9,6 +9,13 @@ case $1 in
         done
         echo $sum
         ;;
+    multiply)
+        product=1
+        for i in ${@:2}; do
+            let product*=$i
+        done
+        echo $product
+        ;;
     cd)
         cd ${@:2}
         ;;
