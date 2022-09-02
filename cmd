@@ -19,8 +19,6 @@ case ${cmd_COMMAND[0]} in
     ls)
         ls ${cmd_COMMAND[@]:1}
         ;;
-    add)
-        
     exit)
         break
         ;;
