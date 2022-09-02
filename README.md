@@ -9,4 +9,4 @@ tf: tinyfetch. Very small system info tool. Written in Bash.
 
 art: ANSI Reference Tool. Program to assist with ANSI codes. Written in Python.
 
-cmd: Basic command line/shell. Written in python.
+cmd: Basic command line/shell. Written in Bash.
