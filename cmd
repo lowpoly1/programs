@@ -37,7 +37,7 @@ while true; do
 
 
 
-echo -n "${cmd_USERNAME}@${cmd_HOSTNAME} -- $ "
+echo -n "${cmd_USERNAME}@${cmd_HOSTNAME} -- > "
 read cmd_INPUTSTRING
 cmd_COMMAND=( $cmd_INPUTSTRING )
 cmd_eval ${cmd_COMMAND[@]} || break
