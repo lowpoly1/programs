@@ -9,6 +9,9 @@ case $1 in
         done
         echo $sum
         ;;
+    cd)
+        cd ${@:2}
+        ;;
     echo)
         echo ${@:2}
         ;;
@@ -16,6 +19,15 @@ case $1 in
         for (( i=0; i<$2; i++ )); do
             cmd_eval ${@:3}
         done
+        ;;
+    help)
+        echo "commands:   add"
+        echo "            cd"
+        echo "            echo"
+        echo "            for"
+        echo "            help"
+        echo "            ls"
+        echo "            exit"
         ;;
     ls)
         ls ${@:2}
