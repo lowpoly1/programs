@@ -10,16 +10,16 @@ cmd_eval () {
 
 #variable expansion
 for i; do
-#    if [ first character is $ ]; then
-#        if [ (rest of word) is a key in $cmd_VARIABLES ]; then
-#            cmd_PARAMETERS+=${cmd_VARIABLES[$i]}
-#        else
-#            echo "${i}: variable not recognized!"
-#            return 0
-#        fi
-#    else
+    if [[ ${i::1} == "\$" ]]; then
+        if [[ -v cmd_VARIABLES[${i:1}] ]]; then
+            cmd_PARAMETERS+=(${cmd_VARIABLES[${i:1}]})
+        else
+            echo "${i:1}: variable not recognized!"
+            return 0
+        fi
+    else
         cmd_PARAMETERS+=($i)
-#    fi
+    fi
 done
 
 #command parsing
