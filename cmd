@@ -7,6 +7,7 @@ declare cmd_COMMAND
 
 cmd_eval () {
 
+unset cmd_PARAMETERS
 
 #variable expansion
 for i; do
@@ -59,8 +60,9 @@ case ${cmd_PARAMETERS[0]} in
         echo ${cmd_PARAMETERS[@]:1}
         ;;
     for)
-        for (( i=0; i<${cmd_PARAMETERS[1]}; i++ )); do
-            cmd_eval ${cmd_PARAMETERS[@]:2}
+        #cmd_VARIABLES[${cmd_PARAMETERS[1]}]=0
+        for (( i=0; i<${cmd_PARAMETERS[2]}; i++ )); do
+            cmd_eval ${cmd_PARAMETERS[@]:3}
         done
         ;;
     help)
@@ -100,6 +102,5 @@ unset cmd_PARAMETERS
 done
 
 unset cmd_VARIABLES
-unset cmd_PARAMETERS
 unset cmd_INPUTSTRING
 unset cmd_COMMAND
