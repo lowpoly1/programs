@@ -72,9 +72,9 @@ case ${cmd_PARAMETERS[0]} in
     lsvars)
         echo ${!cmd_VARIABLES[@]}
         ;;
-#    var)
-#        cmd_VARIABLES[${cmd_PARAMETERS[1]}]=${cmd_PARAMETERS[2]}
-#        ;;
+    var)
+        cmd_VARIABLES[${cmd_PARAMETERS[1]}]=${cmd_PARAMETERS[2]}
+        ;;
     exit)
         return 1
         ;;
