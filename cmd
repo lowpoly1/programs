@@ -7,13 +7,10 @@ declare cmd_COMMAND
 
 cmd_varexp () {
 
-echo "beginning variable expansion"
-
 unset cmd_PARAMETERS
 
 #variable expansion
 for i; do
-    echo "expanding ${i}"
     if [[ ${i::1} == "\$" ]]; then
         if [[ -v cmd_VARIABLES[${i:1}] ]]; then
             cmd_PARAMETERS+=(${cmd_VARIABLES[${i:1}]})
@@ -32,23 +29,13 @@ cmd_eval () {
 
 unset cmd_PARAMETERS
 
-echo "beginning evaluation"
-
 for i; do
-    echo "working on ${i}"
     cmd_PARAMETERS+=($i)
-done
-
-echo "parameters:"
-
-for i in ${cmd_PARAMETERS[@]}; do
-    echo "${i}"
 done
 
 
 #command parsing
 
-echo "beginning parsing"
 
 case ${cmd_PARAMETERS[0]} in
     add)
@@ -93,18 +80,16 @@ case ${cmd_PARAMETERS[0]} in
         ;;
     for)
         #create variable
-        # cmd_VARIABLES[${cmd_PARAMETERS[1]}]=0
-        #create variable reference to increment within loop
-        # declare -n cmd_INCREMENTVARIABLE=cmd_VARIABLES[${cmd_PARAMETERS[1]}]
-        for (( incr=0; incr<${cmd_PARAMETERS[2]}; incr++ )); do
-            echo "value of incr is: ${incr}"
-            # echo "increment ${cmd_INCREMENTVARIABLE}"
-            cmd_eval ${cmd_PARAMETERS[@]:3}
+        cmd_INCREMENTVARIABLE=${cmd_PARAMETERS[1]}
+        cmd_VARIABLES[${cmd_INCREMENTVARIABLE}]=0
+        local cmd_INCREMENTTARGET=${cmd_PARAMETERS[2]}
+        declare -a cmd_LOOPARGS=(${cmd_PARAMETERS[@]:3})
+        while [[ ${cmd_VARIABLES[${cmd_INCREMENTVARIABLE}]} -lt ${cmd_INCREMENTTARGET} ]]; do
+            cmd_eval ${cmd_LOOPARGS[@]}
             #increment variable
-            # let "cmd_INCREMENTVARIABLE++"
-            # echo "about to start increment ${cmd_INCREMENTVARIABLE}"
-            echo "value of incr is: ${incr}"
+            let cmd_VARIABLES[${cmd_INCREMENTVARIABLE}]++
         done
+        unset cmd_INCREMENTTARGET
         unset cmd_INCREMENTVARIABLE
         ;;
     help)
