@@ -1,49 +1,85 @@
 #!/bin/bash
 
+declare -A cmd_VARIABLES
+declare -a cmd_PARAMETERS
+declare cmd_INPUTSTRING
+declare cmd_COMMAND
+
 cmd_eval () {
-case $1 in
+
+
+#variable expansion
+for i; do
+#    if [ first character is $ ]; then
+#        if [ (rest of word) is a key in $cmd_VARIABLES ]; then
+#            cmd_PARAMETERS+=${cmd_VARIABLES[$i]}
+#        else
+#            echo "${i}: variable not recognized!"
+#            return 0
+#        fi
+#    else
+        cmd_PARAMETERS+=($i)
+#    fi
+done
+
+#command parsing
+case ${cmd_PARAMETERS[0]} in
     add)
-        sum=0
-        for i in ${@:2}; do
-            let sum+=$i
+        result=0
+        for i in ${cmd_PARAMETERS[@]:1}; do
+            let result+=$i
         done
-        echo $sum
+        echo $result
+        ;;
+    subtract)
+        result=${cmd_PARAMETERS[1]}
+        for i in ${cmd_PARAMETERS[@]:2}; do
+            let result-=$i
+        done
+        echo $result
         ;;
     multiply)
-        product=1
-        for i in ${@:2}; do
-            let product*=$i
+        result=1
+        for i in ${cmd_PARAMETERS[@]:1}; do
+            let result*=$i
         done
-        echo $product
+        echo $result
+        ;;
+    divide)
+        result=${cmd_PARAMETERS[1]}
+        for i in ${cmd_PARAMETERS[@]:2}; do
+            let result/=$i
+        done
+        echo $result
         ;;
     cd)
-        cd ${@:2}
+        cd ${cmd_PARAMETERS[@]:1}
         ;;
     echo)
-        echo ${@:2}
+        echo ${cmd_PARAMETERS[@]:1}
         ;;
     for)
-        for (( i=0; i<$2; i++ )); do
-            cmd_eval ${@:3}
+        for (( i=0; i<${cmd_PARAMETERS[1]}; i++ )); do
+            cmd_eval ${cmd_PARAMETERS[@]:2}
         done
         ;;
     help)
-        echo "commands:   add"
-        echo "            cd"
-        echo "            echo"
-        echo "            for"
-        echo "            help"
-        echo "            ls"
-        echo "            exit"
+        echo "help is in development"
         ;;
     ls)
-        ls ${@:2}
+        ls ${cmd_PARAMETERS[@]:1}
         ;;
+    lsvars)
+        echo ${!cmd_VARIABLES[@]}
+        ;;
+#    var)
+#        cmd_VARIABLES[${cmd_PARAMETERS[1]}]=${cmd_PARAMETERS[2]}
+#        ;;
     exit)
         return 1
         ;;
     *)
-        echo "Command ${1} not recognized!"
+        echo "Command ${cmd_PARAMETERS[0]} not recognized!"
         ;;
 esac
 }
@@ -58,6 +94,12 @@ read cmd_INPUTSTRING
 cmd_COMMAND=( $cmd_INPUTSTRING )
 cmd_eval ${cmd_COMMAND[@]} || break
 
+unset cmd_PARAMETERS
 
 
 done
+
+unset cmd_VARIABLES
+unset cmd_PARAMETERS
+unset cmd_INPUTSTRING
+unset cmd_COMMAND
