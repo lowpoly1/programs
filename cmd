@@ -21,6 +21,8 @@ for i; do
     else
         cmd_PARAMETERS+=($i)
     fi
+# if $i == "+" then cmd_PARAMETERS+=(($i-1 + $i+1))
+#continue
 done
 
 }
