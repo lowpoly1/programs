@@ -4,26 +4,49 @@ declare -A cmd_VARIABLES
 declare -a cmd_PARAMETERS
 declare cmd_INPUTSTRING
 declare cmd_COMMAND
+declare cmd_ISARITHMETICEVAL
+declare -a cmd_ARITHMETICPARAMETERS
+
+cmd_aritheval () {
+    
+}
 
 cmd_varexp () {
 
-unset cmd_PARAMETERS
+    unset cmd_PARAMETERS
 
-#variable expansion
-for i; do
-    if [[ ${i::1} == "\$" ]]; then
-        if [[ -v cmd_VARIABLES[${i:1}] ]]; then
-            cmd_PARAMETERS+=(${cmd_VARIABLES[${i:1}]})
-        else
-            echo "${i:1}: variable not recognized!"
-            return 0
+    #variable expansion
+    for ((i=1; i<=$#; i++)); do
+
+        #put params into array to be evaluated by arithmetic function
+        if [[ cmd_ISARITHMETICEVAL ]]; then
+            cmd_ARITHMETICPARAMETERS+=(${!i})
         fi
-    else
-        cmd_PARAMETERS+=($i)
-    fi
-# if $i == "+" then cmd_PARAMETERS+=(($i-1 + $i+1))
-#continue
-done
+
+        if [[ ${!i::1} == "\$" ]]; then
+
+            if [[ ${!i:1:2} == "[[" ]]; then
+                cmd_ISARITHMETICEVAL=true
+                continue
+            elif [[ ${!i:1:2} == "]]" ]]; then
+                cmd_aritheval 
+                cmd_ISARITHMETICEVAL=false
+                continue
+            fi
+
+            if [[ -v cmd_VARIABLES[${!i:1}] ]]; then
+                cmd_PARAMETERS+=(${cmd_VARIABLES[${!i:1}]})
+            else
+                echo "${!i:1}: variable not recognized!"
+                return 0
+            fi
+
+
+        else
+            cmd_PARAMETERS+=(${!i})
+        fi
+
+    done
 
 }
 
