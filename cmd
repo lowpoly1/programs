@@ -8,7 +8,45 @@ declare cmd_ISARITHMETICEVAL
 declare -a cmd_ARITHMETICPARAMETERS
 
 cmd_aritheval () {
+    declare -i layer=0
+    declare -a locallist
+    declare -a layerlist
+    declare -a finallist
+    declare whichlist=locallist
+
+    #make local copy of list
+    for item in ${1}; do
+        locallist+=(${item})
+    done
     
+    #parantheses
+    for item in ${!locallist}; do
+        if [[ ${locallist[${item}]} == "(" ]]; then
+            let layer++
+            whichlist=layerlist
+            [[ ${whichlist} == layerlist ]] && layerlist+=(${locallist[${item}]})
+            continue
+        fi
+        if [[ ${locallist[${item}]} == ")" ]]; then
+            if [[ ${layer} > 1 ]]; then
+                let layer--
+                ${!whichlist}+=(${locallist[${item}]})
+            elif [[ ${layer} < 1 ]]; then
+                echo "Bad syntax!"
+                break
+            else
+                whichlist=locallist
+                cmd_aritheval ${layerlist}
+            fi
+            continue
+        fi
+    done
+
+    #multiply
+    for item in ${!1}; do
+        if
+    done
+
 }
 
 cmd_varexp () {
@@ -19,7 +57,7 @@ cmd_varexp () {
     for ((i=1; i<=$#; i++)); do
 
         #put params into array to be evaluated by arithmetic function
-        if [[ cmd_ISARITHMETICEVAL ]]; then
+        if [[ ${cmd_ISARITHMETICEVAL} == true ]]; then
             cmd_ARITHMETICPARAMETERS+=(${!i})
         fi
 
@@ -29,7 +67,7 @@ cmd_varexp () {
                 cmd_ISARITHMETICEVAL=true
                 continue
             elif [[ ${!i:1:2} == "]]" ]]; then
-                cmd_aritheval 
+                cmd_aritheval ${cmd_ARITHMETICPARAMETERS}
                 cmd_ISARITHMETICEVAL=false
                 continue
             fi
