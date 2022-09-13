@@ -1,0 +1,57 @@
+#!/bin/env python3
+
+import os
+import subprocess
+import curses
+
+def show_files_in_dir(path, stdscr, offset):
+  stdscr.clear()
+  stdscr.border()
+  stdscr.addstr(1, 2, path)
+  i = 2
+  for file in os.listdir(path)[offset:]:
+    #if current file is the one selected, stdscr.addstr(i, 2, "->")
+    if i >= curses.LINES - 1:
+        break
+    stdscr.addstr(i, 4, file)
+    i += 1
+  else:
+    stdscr.addstr(i, 4, "<-- End of Directory -->")
+    stdscr.addstr(i+2, 4, "Selected file: " + os.listdir(path)[offset])
+
+def open_file(path):
+  os.popen("xdg-open " + path)
+
+def main(stdscr):
+  curses.curs_set(0)
+  curses.use_default_colors()
+  curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+  current_path = os.getcwd()
+  scroll_pos = 0
+
+  while True:
+    stdscr.refresh()
+    show_files_in_dir(current_path, stdscr, scroll_pos)
+    k = stdscr.getch()
+
+    # arrow keys scroll selection, not page. When selection moves to bottom or top of page, scroll page.
+
+    if k == curses.KEY_UP and scroll_pos > 0:
+      scroll_pos -= 1
+    elif k == curses.KEY_DOWN and scroll_pos < len(os.listdir(current_path)) - 1:
+      scroll_pos += 1
+    elif k == 10:  # Enter key
+      file_selected = os.listdir(current_path)[scroll_pos]
+      full_path = os.path.join(current_path, file_selected)
+      if os.path.isdir(full_path):
+        current_path = full_path
+        scroll_pos = 0
+        show_files_in_dir(current_path, stdscr, scroll_pos)
+      else:
+        stdscr.addstr(13, 4, "path to file: " + full_path)
+        open_file(full_path)
+    elif k == 27:  # Escape key
+      break
+
+if __name__ == '__main__':
+  curses.wrapper(main)
