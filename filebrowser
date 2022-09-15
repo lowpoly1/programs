@@ -3,21 +3,78 @@
 import os
 import subprocess
 import curses
+import time
 
-def show_files_in_dir(path, stdscr, offset):
+def human_readable_size(size, decimal_places=2):
+  for unit in ['B', 'KB', 'GB', 'TB', 'PB']:
+    if abs(size) < 1000.0 or unit == 'PB':
+      break
+    size /= 1000.0
+  return f"{size:.2f} {unit}"
+
+def octal_to_permission_string(octal):
+  permission = ["---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"]
+  result = ""
+  for digit in [int(n) for n in str(octal)]:
+    result += permission[digit]
+  return result
+
+
+
+def show_files_in_dir(path, stdscr, offset, index):
   stdscr.clear()
   stdscr.border()
-  stdscr.addstr(1, 2, path)
+  stdscr.addstr(1, 2, path, curses.color_pair(1) | curses.A_BOLD)
   i = 2
   for file in os.listdir(path)[offset:]:
-    #if current file is the one selected, stdscr.addstr(i, 2, "->")
-    if i >= curses.LINES - 1:
-        break
-    stdscr.addstr(i, 4, file)
+    if i >= curses.LINES - 4:
+      break
+    full_path = os.path.join(path, file)
+    if file == os.listdir(path)[index]:
+      stdscr.addstr(i, 1, "->", curses.color_pair(2) | curses.A_BOLD)
+    if os.path.isdir(full_path):
+      stdscr.addstr(i, 4, file + "/", curses.color_pair(4))
+    elif os.access(full_path, os.X_OK):
+      stdscr.addstr(i, 4, file + "*", curses.color_pair(2))
+    else:
+      match os.path.splitext(file)[1][1:].strip().lower():
+        case "png" | "jpg" | "jpeg" | "webp" | "gif" | "bmp" | "tiff" | "raw" | "svg":
+          stdscr.addstr(i, 4, file, curses.color_pair(5))
+        case "txt" | "doc" | "docx" | "pdf" | "odt" | "ods" | "xls" | "xlsx" | "ppt" | "pptx" | "psd":
+          stdscr.addstr(i, 4, file, curses.color_pair(1))
+        case "webm" | "mpg" | "mp2" | "mpeg" | "mpe" | "mpv" | "ogg" | "mp4" | "m4p" | "m4v" | "avi" | "wmv" | "mov" | "flv" | "wav" | "mp3" | "wma" | "flac" | "m4a" | "aac" | "oga" | "m3u" | "weba" | "mkv" | "mka":
+          stdscr.addstr(i, 4, file, curses.color_pair(2))
+        case _:
+          stdscr.addstr(i, 4, file)
     i += 1
   else:
-    stdscr.addstr(i, 4, "<-- End of Directory -->")
-    stdscr.addstr(i+2, 4, "Selected file: " + os.listdir(path)[offset])
+    if i < curses.LINES - 4:
+      stdscr.addstr(i, 4, "<-- End of Directory -->")
+
+def print_error(msg, errwin):
+  errwin.clear()
+  errwin.border()
+  errwin.addstr(1, 4, msg, curses.color_pair(3))
+  errwin.refresh()
+
+def print_file_info(path, sidewin):
+  sidewin.clear()
+  sidewin.border()
+  file_stats = os.stat(path)
+  sidewin.addstr(1, 2, "Filetype: ")
+  if os.path.isdir(path):
+    sidewin.addstr("Directory")
+    sidewin.addstr(2, 2, "# of files contained: " + str(len(os.listdir(path))))
+  else:
+    name, extension = os.path.splitext(path)
+    if extension != "":
+      sidewin.addstr(extension)
+    else:
+      sidewin.addstr("Unkown")
+    sidewin.addstr(2, 2, "Size: " + human_readable_size(file_stats.st_size))
+  sidewin.addstr(3, 2, "Modified: " + str(time.strftime('%m-%d-%Y %I:%M %p', time.localtime(file_stats.st_mtime))))
+  sidewin.addstr(4, 2, "Permissions: " + octal_to_permission_string(oct(file_stats.st_mode)[-3:]))
+  sidewin.refresh()
 
 def open_file(path):
   os.popen("xdg-open " + path)
@@ -25,33 +82,93 @@ def open_file(path):
 def main(stdscr):
   curses.curs_set(0)
   curses.use_default_colors()
-  curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+
+  # colors
+  curses.init_pair(1, curses.COLOR_YELLOW, -1)
+  curses.init_pair(2, curses.COLOR_GREEN, -1)
+  curses.init_pair(3, curses.COLOR_RED, -1)
+  #filetype colors
+  curses.init_pair(4, curses.COLOR_BLUE, -1)
+  curses.init_pair(5, curses.COLOR_CYAN, -1)
+  curses.init_pair(6, curses.COLOR_MAGENTA, -1)
+  
+  stdscr = curses.newwin(curses.LINES - 3, curses.COLS - 35, 0, 0)
+  sidewin = curses.newwin(curses.LINES - 3, 35, 0, curses.COLS - 35)
+  sidewin.border()
+  sidewin.refresh()
+  errwin = curses.newwin(3, curses.COLS, curses.LINES - 3, 0)
+  errwin.border()
+  errwin.refresh()
   current_path = os.getcwd()
   scroll_pos = 0
+  index = 0
 
   while True:
     stdscr.refresh()
-    show_files_in_dir(current_path, stdscr, scroll_pos)
+    show_files_in_dir(current_path, stdscr, scroll_pos, index)
+    if index < len(os.listdir(current_path)):
+      print_file_info(os.path.join(current_path, os.listdir(current_path)[index]), sidewin)
+    else:
+      sidewin.clear()
+      sidewin.border()
+      sidewin.addstr(1, 2, "No files!")
+      sidewin.refresh()
     k = stdscr.getch()
 
-    # arrow keys scroll selection, not page. When selection moves to bottom or top of page, scroll page.
-
-    if k == curses.KEY_UP and scroll_pos > 0:
-      scroll_pos -= 1
-    elif k == curses.KEY_DOWN and scroll_pos < len(os.listdir(current_path)) - 1:
-      scroll_pos += 1
-    elif k == 10:  # Enter key
-      file_selected = os.listdir(current_path)[scroll_pos]
-      full_path = os.path.join(current_path, file_selected)
-      if os.path.isdir(full_path):
-        current_path = full_path
+    # arrow keys scroll selection. When selection moves to bottom or top of page, scroll page.
+    match k:
+      case 65: # up arrow key
+        # if cursor is not at top of screen, move cursor up
+        if index > scroll_pos + 3:
+          index -= 1
+        # if cursor is at top of screen and not of files, move cursor up
+        elif index > 0:
+          # if screen is not at the top, scroll up
+          if scroll_pos > 0:
+            scroll_pos -= 1
+          index -= 1
+      case 66: # down arrow key
+        # if cursor is at end of file listing, do nothing
+        if index >= len(os.listdir(current_path)) - 1:
+          continue
+        # if cursor is not at bottom of screen, move cursor down
+        if index < curses.LINES - 10 + scroll_pos:
+          index += 1
+        # if cursor is at bottom of screen and not of files, move cursor
+        elif index < len(os.listdir(current_path)) - 1:
+          # if screen is not scrolled down all the way, scroll
+          if scroll_pos < len(os.listdir(current_path)) - curses.LINES + 7:
+            scroll_pos += 1
+          index += 1
+      # open directory
+      case 67: # right arrow key
+        print_error("", errwin)
+        # set variables to reflect selected file
+        file_selected = os.listdir(current_path)[index]
+        full_path = os.path.join(current_path, file_selected)
+        # if is a directory, go to it
+        if os.path.isdir(full_path):
+          current_path = full_path
+          scroll_pos = 0
+          index = 0
+        else:
+          print_error("Not a directory!", errwin)
+      # go to parent directory
+      case 68: # left arrow key
+        print_error("", errwin)
+        # if in root directory, print error
+        if current_path == "/":
+          print_error("Already in root directory!", errwin)
+        # change path
+        current_path = os.path.abspath(os.path.join(current_path, os.pardir))
         scroll_pos = 0
-        show_files_in_dir(current_path, stdscr, scroll_pos)
-      else:
-        stdscr.addstr(13, 4, "path to file: " + full_path)
+        index = 0
+      case 10:  # Enter key
+        file_selected = os.listdir(current_path)[index]
+        full_path = os.path.join(current_path, file_selected)
         open_file(full_path)
-    elif k == 27:  # Escape key
-      break
+      case 113: # q
+        break
 
 if __name__ == '__main__':
   curses.wrapper(main)
