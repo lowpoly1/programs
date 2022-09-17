@@ -1,9 +1,10 @@
 #!/bin/env python3
 
 import os
-import subprocess
+import sys
 import curses
 import time
+import shutil
 
 def human_readable_size(size, decimal_places=2):
   for unit in ['B', 'KB', 'GB', 'TB', 'PB']:
@@ -20,18 +21,29 @@ def octal_to_permission_string(octal):
   return result
 
 
+def touch_file(path):
+  with open(path, 'a'):
+    try:
+      os.utime(path, None)
+    except OSError:
+      pass
+
 
 def show_files_in_dir(path, stdscr, offset, index):
   stdscr.clear()
   stdscr.border()
   stdscr.addstr(1, 2, path, curses.color_pair(1) | curses.A_BOLD)
   i = 2
-  for file in os.listdir(path)[offset:]:
+  for file in sorted(os.listdir(path), key=str.casefold)[offset:]:
     if i >= curses.LINES - 4:
       break
-    full_path = os.path.join(path, file)
-    if file == os.listdir(path)[index]:
+    if file == sorted(os.listdir(path), key=str.casefold)[index]:
       stdscr.addstr(i, 1, "->", curses.color_pair(2) | curses.A_BOLD)
+    if len(file) > curses.COLS - 40:
+      file = file[:curses.COLS - 43] + "..."
+    full_path = os.path.join(path, file)
+
+    # Put all of below code in function and access that function from here and sidewin file info display for copy and move
     if os.path.isdir(full_path):
       stdscr.addstr(i, 4, file + "/", curses.color_pair(4))
     elif os.access(full_path, os.X_OK):
@@ -51,11 +63,68 @@ def show_files_in_dir(path, stdscr, offset, index):
     if i < curses.LINES - 4:
       stdscr.addstr(i, 4, "<-- End of Directory -->")
 
-def print_error(msg, errwin):
+def print_error(msg, errwin, error=True):
   errwin.clear()
   errwin.border()
-  errwin.addstr(1, 4, msg, curses.color_pair(3))
+  if error:
+    errwin.addstr(1, 4, msg, curses.color_pair(3))
+  else:
+    errwin.addstr(1, 4, msg)
   errwin.refresh()
+
+def print_sidewin_msg(msg, sidewin):
+  sidewin.clear()
+  sidewin.border()
+  sidewin.addstr(1, 2, msg)
+  sidewin.refresh()
+
+def popup_get_string(msg):
+  popup = curses.newwin(4, int(curses.COLS / 2), int(curses.LINES / 2) - 2, int(curses.COLS / 4))
+  popup.clear()
+  popup.addstr(1, 2, msg + "\n  ")
+  popup.border()
+
+  curses.echo()
+  curses.curs_set(1)
+  resp = popup.getstr().decode('utf-8')
+  curses.noecho()
+  curses.curs_set(0)
+
+  return resp
+
+def print_status(state, errwin):
+  print_error(state + " mode", errwin, False)
+
+def print_file_selected(file, sidewin):
+  if len(file) > 32:
+    file = file[:29] + "..."
+  sidewin.clear()
+  sidewin.addstr(1, 2, "File selected:")
+  sidewin.border()
+  sidewin.addstr(2, 2, file)
+  sidewin.refresh()
+
+def go(current_path):
+  index = 0
+
+  path = popup_get_string("Enter a path to go to:")
+  
+  while True:
+    # if path is relative, make absolute
+    if path == "":
+      path = current_path
+    if path[0] != "/":
+      path = os.path.join(current_path, path)
+    if os.path.isdir(path):
+      break
+    else:
+      path = popup_get_string("Directory does not exist!")
+  # if path is a file, search for file in its directory, and return the proper index with which to access the file
+#  if path[-1] != "/"
+#    index = 
+#  return (path, index)
+  # delete popup window
+  return path
 
 def print_file_info(path, sidewin):
   sidewin.clear()
@@ -76,7 +145,54 @@ def print_file_info(path, sidewin):
   sidewin.addstr(4, 2, "Permissions: " + octal_to_permission_string(oct(file_stats.st_mode)[-3:]))
   sidewin.refresh()
 
+def print_help(stdscr, errwin, index):
+
+  stdscr.clear()
+  stdscr.border()
+
+  match index:
+    case 0:
+      stdscr.addstr(1, 2, "Mode selection")
+      stdscr.addstr(3, 4, "v: enter view mode")
+      stdscr.addstr(4, 4, "m: enter move mode")
+      stdscr.addstr(5, 4, "c: enter copy mode")
+      stdscr.addstr(6, 4, "a: enter add mode")
+      stdscr.addstr(7, 4, "t: enter touch mode")
+      stdscr.addstr(8, 4, "d: enter delete mode")
+      stdscr.addstr(9, 4, "h: enter help mode")
+
+      print_error("Next: Action keys", errwin, False)
+
+    case 1:
+      stdscr.addstr(1, 2, "Action keys")
+      stdscr.addstr(3, 4, "Enter:")
+      stdscr.addstr(4, 5, "View mode   -   Opens a file with default program")
+      stdscr.addstr(5, 5, "Move mode   -   First selects a file to move, then asks for a name and moves the file")
+      stdscr.addstr(6, 5, "Copy mode   -   First selects a file to copy, then asks for a name and copies the file")
+      stdscr.addstr(7, 5, "Add mode    -   Confirms name of directory to create")
+      stdscr.addstr(8, 5, "Touch mode  -   Confirms name of file to create")
+      stdscr.addstr(9, 5, "Delete mode -   Selects a file to delete")
+      stdscr.addstr(10, 5, "Help mode   -   Returns to view mode")
+      stdscr.addstr(12, 4, "q:")
+      stdscr.addstr(13, 5, "In view mode, exits; in any other mode, returns to view mode")
+      stdscr.addstr(15, 4, "g:")
+      stdscr.addstr(16, 5, "Allows you to enter a path, relative or absolute, and go to that path directly.")
+
+      print_error("Previous: Mode selection   Next: Movement", errwin, False)
+
+    case 2:
+      stdscr.addstr(1, 2, "Movement")
+      stdscr.addstr(3, 4, "Up/Down: Scroll through file listing")
+      stdscr.addstr(4, 4, "Left: Move up a directory; in help mode, moves to previous topic")
+      stdscr.addstr(5, 4, "Right: Move into a directory; in help mode, moves to next topic")
+
+      print_error("Previous: Action keys", errwin, False)
+  
+
 def open_file(path):
+  if os.path.isdir(path):
+    os.chdir(path)
+    sys.exit(0)
   os.popen("xdg-open " + path)
 
 def main(stdscr):
@@ -99,25 +215,46 @@ def main(stdscr):
   errwin = curses.newwin(3, curses.COLS, curses.LINES - 3, 0)
   errwin.border()
   errwin.refresh()
+  
   current_path = os.getcwd()
+  file_selected_path = ""
+  
   scroll_pos = 0
   index = 0
+  help_index = 0
+
+  state = "view"
+
+  print_status(state, errwin)
 
   while True:
     stdscr.refresh()
-    show_files_in_dir(current_path, stdscr, scroll_pos, index)
-    if index < len(os.listdir(current_path)):
-      print_file_info(os.path.join(current_path, os.listdir(current_path)[index]), sidewin)
+    if state == "help":
+      print_sidewin_msg("", sidewin)
+      print_help(stdscr, errwin, help_index)
     else:
-      sidewin.clear()
-      sidewin.border()
-      sidewin.addstr(1, 2, "No files!")
-      sidewin.refresh()
+      show_files_in_dir(current_path, stdscr, scroll_pos, index)
+      if ( state == "move" or state == "copy" ) and file_selected_path != "":
+        print_file_selected(os.path.basename(file_selected_path), sidewin)
+      elif index < len(os.listdir(current_path)):
+        print_file_info(os.path.join(current_path, sorted(os.listdir(current_path), key=str.casefold)[index]), sidewin)
+      else:
+        print_sidewin_msg("No files!", sidewin)
     k = stdscr.getch()
 
-    # arrow keys scroll selection. When selection moves to bottom or top of page, scroll page.
+# to find character codes
+#    print_error(str(k), errwin, False)
+
     match k:
+
+      ## MOVEMENT
+    
       case 65: # up arrow key
+      
+        # don't do anything in help mode
+        if state == "help":
+          continue
+        
         # if cursor is not at top of screen, move cursor up
         if index > scroll_pos + 3:
           index -= 1
@@ -127,7 +264,15 @@ def main(stdscr):
           if scroll_pos > 0:
             scroll_pos -= 1
           index -= 1
+        print_status(state, errwin)
+
+        
       case 66: # down arrow key
+      
+        # don't do anything in help mode
+        if state == "help":
+          continue
+          
         # if cursor is at end of file listing, do nothing
         if index >= len(os.listdir(current_path)) - 1:
           continue
@@ -140,12 +285,22 @@ def main(stdscr):
           if scroll_pos < len(os.listdir(current_path)) - curses.LINES + 7:
             scroll_pos += 1
           index += 1
+        print_status(state, errwin)
+
+        
       # open directory
       case 67: # right arrow key
-        print_error("", errwin)
+      
+        # help mode
+        if state == "help":
+          if help_index < 2:
+            help_index += 1
+          continue
+          
+        print_status(state, errwin)
         # set variables to reflect selected file
-        file_selected = os.listdir(current_path)[index]
-        full_path = os.path.join(current_path, file_selected)
+        dir_selected = sorted(os.listdir(current_path), key=str.casefold)[index]
+        full_path = os.path.join(current_path, dir_selected)
         # if is a directory, go to it
         if os.path.isdir(full_path):
           current_path = full_path
@@ -153,9 +308,18 @@ def main(stdscr):
           index = 0
         else:
           print_error("Not a directory!", errwin)
+
+
       # go to parent directory
       case 68: # left arrow key
-        print_error("", errwin)
+      
+        # help mode
+        if state == "help":
+          if help_index > 0:
+            help_index -= 1
+          continue
+          
+        print_status(state, errwin)
         # if in root directory, print error
         if current_path == "/":
           print_error("Already in root directory!", errwin)
@@ -163,12 +327,147 @@ def main(stdscr):
         current_path = os.path.abspath(os.path.join(current_path, os.pardir))
         scroll_pos = 0
         index = 0
+
+      ## MODE SELECTION
+
+      case 118: # v[iew] (default)
+        if state != "view":
+          state = "view"
+          print_status(state, errwin)
+        else:
+          print_error("Already in view mode", errwin)
+
+      case 109: # m[ove]
+        if state != "move":
+          state = "move"
+          print_status(state, errwin)
+        else:
+          print_error("Already in move mode", errwin)
+
+      case 99: # c[opy]
+        if state != "copy":
+          state = "copy"
+          print_status(state, errwin)
+        else:
+          print_error("Already in copy mode", errwin)
+
+      case 97: # a[dd]
+        if state != "add":
+          state = "add"
+          print_status(state, errwin)
+        else:
+          print_error("Already in copy mode", errwin)
+
+      case 116: # t[ouch]
+        if state != "touch":
+          state = "touch"
+          print_status(state, errwin)
+        else:
+          print_error("Already in touch mode", errwin)
+
+      case 100: # d[elete]
+        if state != "delete":
+          state = "delete"
+          print_status(state, errwin)
+        else:
+          print_error("Already in delete mode", errwin)
+
+      case 104: # h[elp]
+        if state != "help":
+          state = "help"
+          print_status(state, errwin)
+        else:
+          print_error("Already in help mode", errwin)
+
+      ## ACTION
+        
       case 10:  # Enter key
-        file_selected = os.listdir(current_path)[index]
-        full_path = os.path.join(current_path, file_selected)
-        open_file(full_path)
-      case 113: # q
-        break
+        match state:
+          case "view":
+            file_selected = sorted(os.listdir(current_path), key=str.casefold)[index]
+            full_path = os.path.join(current_path, file_selected)
+            open_file(full_path)
+
+          case "move":
+            if file_selected_path == "":
+              file_selected = sorted(os.listdir(current_path), key=str.casefold)[index]
+              file_selected_path = os.path.join(current_path, file_selected)
+            else:
+              name = popup_get_string("Name of file (blank to keep same):")
+              if name == "":
+                name = os.path.basename(file_selected_path)
+              new_file_path = os.path.join(current_path, name)
+              if os.path.isdir(file_selected_path):
+                file_selected_path += "/"
+                new_file_path += "/"
+              os.replace(file_selected_path, new_file_path)
+              print_status(state, errwin)
+              file_selected_path = ""
+
+          case "copy":
+            if file_selected_path == "":
+              file_selected = sorted(os.listdir(current_path), key=str.casefold)[index]
+              file_selected_path = os.path.join(current_path, file_selected)
+            else:
+              name = popup_get_string("Name of file (blank to keep same):")
+              if name == "":
+                name = os.path.basename(file_selected_path)
+              new_file_path = os.path.join(current_path, name)
+              if os.path.isdir(file_selected_path):
+                file_selected_path += "/"
+                new_file_path += "/"
+              os.popen("cp -r " + file_selected_path + " " + new_file_path)
+              print_status(state, errwin)
+              file_selected_path = ""
+
+          case "add":
+            name = popup_get_string("Name for directory:")
+            full_path = os.path.join(current_path, name)
+            try:
+              os.mkdir(full_path)
+            except FileExistsError:
+              print_error("Directory already exists!", errwin)
+            print_status(state, errwin)
+
+          case "touch":
+            name = popup_get_string("Name for file:")
+            full_path = os.path.join(current_path, name)
+            touch_file(full_path)
+
+          case "delete":
+            file_selected = sorted(os.listdir(current_path), key=str.casefold)[index]
+            full_path = os.path.join(current_path, file_selected)
+            if os.path.isdir(full_path):
+              if len(os.listdir(full_path)) > 0:
+                choice = popup_get_string("Directory is not empty. Delete anyway? ")
+                if choice == "y":
+                  shutil.rmtree(full_path)
+              else:
+                os.rmdir(full_path)
+            else:
+              choice = popup_get_string("Are you sure you want to delete?")
+              if choice == "y":
+                os.remove(full_path)
+            if index > len(os.listdir(current_path)) - 1:
+              index = len(os.listdir(current_path)) - 1
+            print_status(state, errwin)
+
+          case "help":
+            state == "view"
+            print_status(state, errwin)
+
+      case 103: # g[o]
+        # call go() function, but needs to have access to all variables
+        scroll_pos = 0
+        index = 0
+        current_path = go(current_path)
+            
+      case 113: # q[uit]
+        if state != "view":
+          state = "view"
+          print_status(state, errwin)
+        else:
+          break
 
 if __name__ == '__main__':
   curses.wrapper(main)
