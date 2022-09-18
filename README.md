@@ -7,6 +7,8 @@ tf: tinyfetch. Very small system info tool. Written in Bash.
 
 ## Currently in development:
 
+filebrowser: TUI file browser that allows file and directory creation, copy, and move. I promise I am trying to think of a more imaginative name. Written in Python.
+
 art: ANSI Reference Tool. Program to assist with ANSI codes. Written in Python.
 
 cmd: Basic command line/shell. Written in Bash.
