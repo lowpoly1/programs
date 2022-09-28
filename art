@@ -3,7 +3,11 @@
 import sys
 from optparse import OptionParser
 
-usage="%prog [options]\n\nART - ANSI Reference Tool"
+def colorinfo():
+    print("\nForeground: \"\\u001b[38;5;{NUM}m\"\nBackground: \"\\u001b[48;5;{NUM}m\"\nWhere {NUM} is the code you want as displayed below\n")
+    
+
+usage = "%prog [options]\n\nART - ANSI Reference Tool"
 
 parser = OptionParser(usage)
 
@@ -26,38 +30,43 @@ parser.add_option("-c", "--cursor",
 (options, args) = parser.parse_args()
 
 if options.cursor:
-    if len(options) > 1:
+    if options.foreground != -1 or options.background != -1:
         parser.error("-c cannot be used with any other options")
     else:
         print("Code                                                         Action\n")
         
-        print("\u001b[{N}A:                        Move the cursor N characters up")
-        print("\u001b[{N}B:                      Move the cursor N characters down")
-        print("\u001b[{N}C:                     Move the cursor N characters right")
-        print("\u001b[{N}D:                      Move the cursor N characters left\n")
+        print("\\u001b[{N}A:                        Move the cursor N characters up")
+        print("\\u001b[{N}B:                      Move the cursor N characters down")
+        print("\\u001b[{N}C:                     Move the cursor N characters right")
+        print("\\u001b[{N}D:                      Move the cursor N characters left\n")
 
-        print("\u001b[{N}E:      Move the cursor to beginning of line N lines down")
-        print("\u001b[{N}F:        Move the cursor to beginning of line N lines up\n")
+        print("\\u001b[{N}E:      Move the cursor to beginning of line N lines down")
+        print("\\u001b[{N}F:        Move the cursor to beginning of line N lines up\n")
 
-        print("\u001b[{N}G:                                Move cursor to column N")
-        print("\u001b[{M};{N}H:                  Move cursor to row M and column N\n")
+        print("\\u001b[{N}G:                                Move cursor to column N")
+        print("\\u001b[{M};{N}H:                  Move cursor to row M and column N\n")
         
-        print("\u001b[0J:                       Clear from cursor to end of screen")
-        print("\u001b[1J:                 Clear from cursor to beginning of screen")
-        print("\u001b[2J:                                      Clear entire screen\n")
+        print("\\u001b[0J:                       Clear from cursor to end of screen")
+        print("\\u001b[1J:                 Clear from cursor to beginning of screen")
+        print("\\u001b[2J:                                      Clear entire screen\n")
         
-        print("\u001b[0K:                         Clear from cursor to end of line")
-        print("\u001b[1K:                   Clear from cursor to beginning of line")
-        print("\u001b[2K:                                        Clear entire line\n")
+        print("\\u001b[0K:                         Clear from cursor to end of line")
+        print("\\u001b[1K:                   Clear from cursor to beginning of line")
+        print("\\u001b[2K:                                        Clear entire line\n")
 
-        print("\u001b[s:                              Save current cursor position")
-        print("\u001b[u:                                   Restore cursor position")
+        print("\\u001b[s:                              Save current cursor position")
+        print("\\u001b[u:                                   Restore cursor position")
+
 
 elif options.foreground >= 0 and options.background >= 0:
+
+    colorinfo()
 
     sys.stdout.write(u"\u001b[38;5;" + str(options.foreground) + ";48;5;" + str(options.background) + "mForeground: " + str(options.foreground).rjust(4) + "\nBackground: " + str(options.background).rjust(4) + "\u001b[0m\n")
 
 elif options.foreground >= 0:
+
+    colorinfo()
 
     #define foreground color
     sys.stdout.write(u"\u001b[38;5;" + str(options.foreground) + "m")    
@@ -99,6 +108,9 @@ elif options.foreground >= 0:
     sys.stdout.write(" ")
 
 elif options.background >= 0:
+    
+    # print basic help
+    colorinfo()
 
     # declare background color
     sys.stdout.write(u"\u001b[48;5;" + str(options.background) + "m")
@@ -140,6 +152,9 @@ elif options.background >= 0:
     sys.stdout.write(" ")
 
 else:
+
+    colorinfo()
+
     # main 16
     for j in range(0, 16):
         code = str(j)
