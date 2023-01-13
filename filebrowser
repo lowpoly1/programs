@@ -89,7 +89,8 @@ def popup_get_string(msg):
   resp = popup.getstr().decode('utf-8')
   curses.noecho()
   curses.curs_set(0)
-
+  
+  del popup
   return resp
 
 def print_status(state, errwin):
