@@ -5,6 +5,7 @@ Features:
 - Play/pause
 - Forward and back seeking
 - opens URLs
+
 Todo:
 - Add config file to edit what links are available
 - Pop-up menu with list of links, or a scrollable list; to fit more links in the same space
